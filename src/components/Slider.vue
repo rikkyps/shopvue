@@ -57,7 +57,7 @@ export default {
         }
     }
 
-    axios.get('http://shopvue-backend.codehater.net/api/v1/products')
+    axios.get('https://shopvue-backend.codehater.net/api/v1/products')
         .then(res => {
             this.products = res.data.data.data
         })
