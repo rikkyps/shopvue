@@ -34,30 +34,23 @@
                                             <th>Action</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        <tr>
+                                    <tbody v-if="keranjang.length > 0">
+                                        <tr v-for="keranjang in keranjang" :key="keranjang.id">
                                             <td class="cart-pic first-row">
-                                                <img src="img/cart-page/product-1.jpg" />
+                                                <img class="image-cart" :src="keranjang.image" />
                                             </td>
                                             <td class="cart-title first-row text-center">
-                                                <h5>Pure Pineapple</h5>
+                                                <h5>{{ keranjang.name }}</h5>
                                             </td>
-                                            <td class="p-price first-row">$60.00</td>
-                                            <td class="delete-item"><a href="#"><i class="material-icons">
+                                            <td class="p-price first-row">Rp. {{ keranjang.price }}</td>
+                                            <td class="delete-item"><a href="#" @click="removeItem(keranjang.id)"><i class="material-icons">
                                               close
                                               </i></a></td>
                                         </tr>
+                                    </tbody>
+                                    <tbody v-else>
                                         <tr>
-                                            <td class="cart-pic first-row">
-                                                <img src="img/cart-page/product-1.jpg" />
-                                            </td>
-                                            <td class="cart-title first-row text-center">
-                                                <h5>Pure Pineapple</h5>
-                                            </td>
-                                            <td class="p-price first-row">$60.00</td>
-                                            <td class="delete-item"><a href="#"><i class="material-icons">
-                                              close
-                                              </i></a></td>
+                                            <td colspan="4">Keranjang Kosong</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -68,22 +61,26 @@
                                 Informasi Pembeli:
                             </h4>
                             <div class="user-checkout text-left">
-                                <form>
+                                <form >
                                     <div class="form-group">
                                         <label for="namaLengkap">Nama lengkap</label>
-                                        <input type="text" class="form-control" id="namaLengkap" aria-describedby="namaHelp" placeholder="Masukan Nama">
+                                        <input v-model="customerInfo.name" type="text" class="form-control" id="namaLengkap" aria-describedby="namaHelp" placeholder="Masukan Nama">
+                                        <small class="text-danger" v-if="error.name">{{ error.name }}</small>
                                     </div>
                                     <div class="form-group">
                                         <label for="namaLengkap">Email Address</label>
-                                        <input type="email" class="form-control" id="emailAddress" aria-describedby="emailHelp" placeholder="Masukan Email">
+                                        <input type="email" v-model="customerInfo.email" class="form-control" id="emailAddress" aria-describedby="emailHelp" placeholder="Masukan Email">
+                                        <small class="text-danger" v-if="error.email">{{ error.email }}</small>
                                     </div>
                                     <div class="form-group">
                                         <label for="namaLengkap">No. HP</label>
-                                        <input type="text" class="form-control" id="noHP" aria-describedby="noHPHelp" placeholder="Masukan No. HP">
+                                        <input type="number" v-model="customerInfo.phone" class="form-control" id="noHP" aria-describedby="noHPHelp" placeholder="Masukan No. HP">
+                                        <small class="text-danger" v-if="error.phone">{{ error.phone }}</small>
                                     </div>
                                     <div class="form-group">
                                         <label for="alamatLengkap">Alamat Lengkap</label>
-                                        <textarea class="form-control" id="alamatLengkap" rows="3"></textarea>
+                                        <textarea v-model="customerInfo.address" class="form-control" id="alamatLengkap" rows="3"></textarea>
+                                        <small class="text-danger" v-if="error.address">{{ error.address }}</small>
                                     </div>
                                 </form>
                             </div>
@@ -96,14 +93,14 @@
                             <div class="proceed-checkout text-left">
                                 <ul>
                                     <li class="subtotal">ID Transaction <span>#SH12000</span></li>
-                                    <li class="subtotal mt-3">Subtotal <span>$240.00</span></li>
+                                    <li class="subtotal mt-3">Subtotal <span>Rp. {{ subTotal }}</span></li>
                                     <li class="subtotal mt-3">Pajak <span>10%</span></li>
-                                    <li class="subtotal mt-3">Total Biaya <span>$440.00</span></li>
+                                    <li class="subtotal mt-3">Total Biaya <span>Rp. {{ grandTotal }}</span></li>
                                     <li class="subtotal mt-3">Bank Transfer <span>Mandiri</span></li>
                                     <li class="subtotal mt-3">No. Rekening <span>2208 1996 1403</span></li>
                                     <li class="subtotal mt-3">Nama Penerima <span>Shayna</span></li>
                                 </ul>
-                                <router-link :to="{name: 'Success'}" class="proceed-btn">I ALREADY PAID</router-link>
+                                <a class="proceed-btn" href="#" @click.prevent="checkout">I ALREADY PAID</a>
                             </div>
                         </div>
                     </div>
@@ -120,11 +117,99 @@
 // @ is an alias to /src
 // import HelloWorld from '@/components/HelloWorld.vue'
 import Header from '@/components/Header.vue'
+import axios from 'axios'
 
 export default {
   name: 'Shopping',
   components: {
     Header
+  },
+  data(){
+      return{
+          keranjang: [],
+          customerInfo: {
+              name: null,
+              email: null,
+              phone: null,
+              address: null
+          },
+          error: ''
+      }
+  },
+  mounted(){
+    if(localStorage.getItem('keranjang')){
+        try {
+            this.keranjang = JSON.parse(localStorage.getItem('keranjang'))
+        } catch(e) {
+            localStorage.removeItem('keranjang')
+        }
+    } 
+  },
+  computed: {
+      subTotal(){
+          let n = 0
+          for(let i = 0; i < this.keranjang.length; i++){
+              n += parseInt(this.keranjang[i].price)
+          }
+          return n
+      },
+      grandTotal(){
+          let n = 0
+          n = this.subTotal + (this.subTotal * 10) / 100
+          return n
+      }
+  },
+  methods: {
+    removeItem(idx) {
+        let keranjangStorage = JSON.parse(localStorage.getItem('keranjang'))
+        let itemKeranjangStorage = keranjangStorage.map(itemKeranjangStorage => itemKeranjangStorage.id)
+        let index = itemKeranjangStorage.findIndex(id => id == idx)
+        this.keranjang.splice(index, 1)
+        const parsed = JSON.stringify(this.keranjang)
+        localStorage.setItem('keranjang', parsed)
+    },
+
+    checkout(){
+
+        if(this.grandTotal == 0){
+            alert('Masukan produk terlebih dahulu')
+        } else {
+        let productIds = this.keranjang.map(function(product){
+            return product.id
+        })
+
+        let checkoutData = {
+            'name': this.customerInfo.name,
+            'email': this.customerInfo.email,
+            'phone': this.customerInfo.phone,
+            'address': this.customerInfo.address,
+            'grandTotal': this.grandTotal,
+            'status': 'PENDING',
+            'transaction_details': productIds
+        }
+
+        axios.post('https://www.shopvue-backend.codehater.net/api/v1/checkout', checkoutData)
+            .then(res => {
+                this.$router.push({name: 'Success'})
+                // eslint-disable-next-line no-console
+                console.log(res.data)
+            })  
+            .catch(err => {
+                // eslint-disable-next-line no-console
+                console.log(err)
+                this.error = err.response.data.errors
+            })
+        }
+        
+    }
   }
+
 }
 </script>
+
+<style scoped>
+    .image-cart{
+        width: 80px;
+        height: 80px;
+    }
+</style>

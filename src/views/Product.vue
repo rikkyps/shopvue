@@ -26,22 +26,11 @@
                             <div class="product-pic-zoom">
                                 <img class="product-big-img" :src="primaryImage" alt="" />
                             </div>
-                            <div class="product-thumbs">
+                            <div class="product-thumbs" v-if="productDetails.galleries.length > 0">
                                 <carousel :dots="false" :nav="false" class="product-thumbs-track ps-slider">
-                                    <div @click.prevent="changePrimaryImage(images[0])" class="pt" :class="images[0] == primaryImage ? 'active' : ''">
-                                        <img src="img/mickey1.jpg" alt="" />
-                                    </div>
-
-                                    <div @click="changePrimaryImage(images[1])" class="pt" :class="images[1] == primaryImage ? 'active' : ''">
-                                        <img src="img/mickey2.jpg" alt="" />
-                                    </div>
-
-                                    <div @click="changePrimaryImage(images[2])" class="pt" :class="images[2] == primaryImage ? 'active' : ''">
-                                        <img src="img/mickey3.jpg" alt="" />
-                                    </div>
-
-                                    <div @click="changePrimaryImage(images[3])" class="pt" :class="images[3] == primaryImage ? 'active' : ''">
-                                        <img src="img/mickey4.jpg" alt="" />
+                                    <div v-for="image in productDetails.galleries" :key="image.id"
+                                    @click.prevent="changePrimaryImage(image.image)" class="pt" :class="image.image ==  primaryImage ? 'active' : ''">
+                                        <img :src="image.image" alt="" />
                                     </div>
                                 </carousel>
                             </div>
@@ -49,23 +38,17 @@
                         <div class="col-lg-6">
                             <div class="product-details text-left">
                                 <div class="pd-title">
-                                    <span>oranges</span>
-                                    <h3>Pure Pineapple</h3>
+                                    <span>{{ productDetails.type }}</span>
+                                    <h3>{{ productDetails.name }}</h3>
                                 </div>
                                 <div class="pd-desc">
-                                    <p>
-                                        Lorem ipsum dolor sit amet consectetur adipisicing elit. Corporis, error officia. Rem aperiam laborum voluptatum vel, pariatur modi hic provident eum iure natus quos non a sequi, id accusantium! Autem.
-                                    </p>
-                                    <p>
-                                        Lorem ipsum dolor sit, amet consectetur adipisicing elit. Quam possimus quisquam animi, commodi, nihil voluptate nostrum neque architecto illo officiis doloremque et corrupti cupiditate voluptatibus error illum. Commodi expedita animi nulla aspernatur.
-                                        Id asperiores blanditiis, omnis repudiandae iste inventore cum, quam sint molestiae accusamus voluptates ex tempora illum sit perspiciatis. Nostrum dolor tenetur amet, illo natus magni veniam quia sit nihil dolores.
-                                        Commodi ratione distinctio harum voluptatum velit facilis voluptas animi non laudantium, id dolorem atque perferendis enim ducimus? A exercitationem recusandae aliquam quod. Itaque inventore obcaecati, unde quam
-                                        impedit praesentium veritatis quis beatae ea atque perferendis voluptates velit architecto?
-                                    </p>
-                                    <h4>$495.00</h4>
+                                    <p v-html="productDetails.description"></p>
+                                    <h4>Rp. {{ productDetails.price }}</h4>
                                 </div>
                                 <div class="quantity">
-                                    <router-link :to="{name: 'ShopingCart'}" class="primary-btn pd-cart">Add To Cart</router-link>
+                                    <router-link to="/shoping-cart">
+                                        <a href="#" @click="saveKeranjang(productDetails.id, productDetails.name, productDetails.price, productDetails.galleries[0].image)" class="primary-btn pd-cart">Add To Cart</a>
+                                    </router-link>
                                 </div>
                             </div>
                         </div>
@@ -88,6 +71,7 @@ import Footer from '../components/Footer.vue'
 import Related from '../components/products/Related.vue'
 
 import carousel from 'vue-owl-carousel'
+import axios from 'axios'
 
 export default {
   name: 'Product',
@@ -100,18 +84,50 @@ export default {
   },
   data(){
     return{
-      primaryImage: 'img/mickey1.jpg',
-      images: [
-        'img/mickey1.jpg',
-        'img/mickey2.jpg',
-        'img/mickey3.jpg',
-        'img/mickey4.jpg'
-      ]
+      primaryImage: '',
+      productDetails: [],
+      keranjang: [],
+      id: this.$route.params.id
     }
+  },
+  mounted(){
+    if(localStorage.getItem('keranjang')){
+        try {
+            this.keranjang = JSON.parse(localStorage.getItem('keranjang'))
+        } catch(e) {
+            localStorage.removeItem('keranjang')
+        }
+    }
+
+    axios.get('http://shopvue-backend.codehater.net/api/v1/products', {
+        params: {id: this.id}
+    })
+    .then(res => {
+        this.getDataImage(res.data.data)
+    })
+    .catch(err => {
+        // eslint-disable-next-line no-console
+        console.log(err)
+    })
   },
   methods: {
     changePrimaryImage(image){
       this.primaryImage = image
+    },
+    getDataImage(data){
+        this.primaryImage = data.galleries[1].image
+        this.productDetails = data
+    },
+    saveKeranjang(dataId, dataName, dataPrice, dataImage){
+        var item = {
+            'id': dataId,
+            'name': dataName,
+            'price': dataPrice,
+            'image': dataImage
+        }
+        this.keranjang.push(item)
+        const parsed = JSON.stringify(this.keranjang)
+        localStorage.setItem('keranjang', parsed)
     }
   }
 }
